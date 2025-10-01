@@ -10,9 +10,16 @@ export async function getStudyResources(input: GenerateStudyResourcesInput) {
     if (output.youtubeVideos) {
       output.youtubeVideos.forEach(video => {
         if (video.url) {
-          const videoId = new URL(video.url).searchParams.get('v');
-          if (videoId) {
-            video.videoId = videoId;
+          try {
+            const url = new URL(video.url);
+            const videoId = url.searchParams.get('v');
+            if (videoId) {
+              video.videoId = videoId;
+            } else if (url.pathname.includes('/shorts/')) {
+              video.videoId = url.pathname.split('/shorts/')[1];
+            }
+          } catch (e) {
+            console.error('Invalid video URL:', video.url);
           }
         }
       });

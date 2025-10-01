@@ -94,54 +94,58 @@ export default function ResourceGenerator() {
 
       {result && (
         <div className='space-y-8'>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Youtube /> YouTube Videos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
-              {result.youtubeVideos.map((video) => (
-                <div key={video.videoId} className='space-y-2'>
-                  <div className="aspect-video overflow-hidden rounded-lg border">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={`https://www.youtube.com/embed/${video.videoId}`}
-                      title={video.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    ></iframe>
+          {result.youtubeVideos && result.youtubeVideos.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Youtube /> YouTube Videos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-6 md:grid-cols-2">
+                {result.youtubeVideos.map((video) => (
+                  <div key={video.videoId} className='space-y-2'>
+                    <div className="aspect-video overflow-hidden rounded-lg border">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${video.videoId}`}
+                        title={video.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                    <p className='font-semibold'>{video.title}</p>
                   </div>
-                  <p className='font-semibold'>{video.title}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookMarked /> Recommended Articles
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {result.articles.map((article, index) => (
-                  <li key={index}>
-                    <Link
-                      href={article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex items-center gap-2 text-primary hover:underline"
-                    >
-                      <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                      <span className="font-medium">{article.title}</span>
-                    </Link>
-                  </li>
                 ))}
-              </ul>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
+          {result.articles && result.articles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookMarked /> Recommended Articles
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  {result.articles.map((article, index) => (
+                    <li key={index}>
+                      <Link
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-center gap-2 text-primary hover:underline"
+                      >
+                        <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                        <span className="font-medium">{article.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>
