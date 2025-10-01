@@ -103,7 +103,7 @@ export default function ResourceGenerator() {
               </CardHeader>
               <CardContent className="grid gap-6 md:grid-cols-2">
                 {result.youtubeVideos.map((video) => (
-                  <div key={video.videoId} className='space-y-2'>
+                  <div key={video.videoId} className='space-y-3'>
                     <div className="aspect-video overflow-hidden rounded-lg border">
                       <iframe
                         width="100%"
@@ -114,7 +114,11 @@ export default function ResourceGenerator() {
                         allowFullScreen
                       ></iframe>
                     </div>
-                    <p className='font-semibold'>{video.title}</p>
+                    <div>
+                      <p className='font-semibold'>{video.title}</p>
+                      <p className='text-sm text-muted-foreground'>{video.channel}</p>
+                      <p className='text-sm mt-1'>{video.description}</p>
+                    </div>
                   </div>
                 ))}
               </CardContent>

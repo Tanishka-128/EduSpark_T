@@ -23,11 +23,27 @@ const prompt = ai.definePrompt({
   name: 'generateStudyResourcesPrompt',
   input: {schema: GenerateStudyResourcesInputSchema},
   output: {schema: GenerateStudyResourcesOutputSchema},
-  prompt: `You are an AI assistant designed to recommend study resources including YouTube videos and articles based on a user's study goal.
+  prompt: `You are a smart study assistant. The student will provide a topic. Based on this topic:
 
-  Study Goal: {{{studyGoal}}}
+1. Search YouTube and recommend the **top 3–4 videos** with the highest views and likes.
+   - Always return a valid working YouTube URL.
+   - Also return the video title, channel name, and short description.
+   - Make sure the links are clickable and not broken.
 
-  Recommend a list of relevant YouTube videos and articles that would be helpful for achieving the study goal. For each YouTube video, provide the title, URL, and the video ID. For each article, provide the title and a clickable URL.
+2. Find **2–3 related articles/blogs** on the same topic.
+   - Return their title and clickable URL.
+   - Ensure the links work.
+
+3. Output must be structured as JSON with two keys:
+   - \`youtubeVideos\`: an array of \`{ title, channel, url, description, videoId }\`
+   - \`articles\`: an array of \`{ title, url }\`
+
+Rules:
+- Only include working YouTube URLs and valid article links.
+- Do not hallucinate links.
+- Ensure the output follows JSON strictly.
+
+Topic: {{{studyGoal}}}
   `,
 });
 
