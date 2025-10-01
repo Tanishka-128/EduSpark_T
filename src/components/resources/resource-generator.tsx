@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState } from 'react';
 import { getStudyResources } from '@/lib/actions';
-import type { GenerateStudyResourcesOutput } from '@/ai/flows/generate-study-resources';
+import type { GenerateStudyResourcesOutput } from '@/ai/schemas/generate-study-resources-schema';
 import { Loader2, Youtube, ExternalLink, BookMarked } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

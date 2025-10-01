@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import type { Flashcard } from '@/ai/flows/generate-learn-material';
+import type { Flashcard } from '@/ai/schemas/generate-learn-material-schema';
 
 interface FlashcardsProps {
   flashcards: Flashcard[];

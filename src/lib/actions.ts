@@ -1,9 +1,13 @@
 'use server';
 
-import { aiChatbotTutor, AIChatbotTutorInput } from '@/ai/flows/ai-chatbot-tutor';
-import { generateStudyResources, GenerateStudyResourcesInput } from '@/ai/flows/generate-study-resources';
-import { generateLearnMaterial as generateLearnMaterialFlow, GenerateLearnMaterialInput } from '@/ai/flows/generate-learn-material';
-import { analyzeQuizResults as analyzeQuizResultsFlow, AnalyzeQuizResultsInput } from '@/ai/flows/analyze-quiz-results';
+import { aiChatbotTutor } from '@/ai/flows/ai-chatbot-tutor';
+import { generateStudyResources } from '@/ai/flows/generate-study-resources';
+import { generateLearnMaterial } from '@/ai/flows/generate-learn-material';
+import { analyzeQuizResults } from '@/ai/flows/analyze-quiz-results';
+import type { GenerateStudyResourcesInput } from '@/ai/schemas/generate-study-resources-schema';
+import type { AIChatbotTutorInput } from '@/ai/schemas/ai-chatbot-tutor-schema';
+import type { GenerateLearnMaterialInput } from '@/ai/schemas/generate-learn-material-schema';
+import type { AnalyzeQuizResultsInput } from '@/ai/schemas/analyze-quiz-results-schema';
 
 export async function getStudyResources(input: GenerateStudyResourcesInput) {
   try {
@@ -56,7 +60,7 @@ export async function getTutorResponse(input: AIChatbotTutorInput) {
 
 export async function generateLearnMaterial(input: GenerateLearnMaterialInput) {
     try {
-        const output = await generateLearnMaterialFlow(input);
+        const output = await generateLearnMaterial(input);
         return { success: true, data: output };
     } catch (error) {
         console.error(error);
@@ -67,7 +71,7 @@ export async function generateLearnMaterial(input: GenerateLearnMaterialInput) {
 
 export async function analyzeQuizResults(input: AnalyzeQuizResultsInput) {
     try {
-        const output = await analyzeQuizResultsFlow(input);
+        const output = await analyzeQuizResults(input);
         return { success: true, data: output };
     } catch (error) {
         console.error(error);

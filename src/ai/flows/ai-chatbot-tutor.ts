@@ -3,23 +3,16 @@
  * @fileOverview An AI Chatbot Tutor for doubt resolution and mindmap generation.
  *
  * - aiChatbotTutor - A function that handles the chatbot tutoring process.
- * - AIChatbotTutorInput - The input type for the aiChatbotTutor function.
- * - AIChatbotTutorOutput - The return type for the aiChatbotTutor function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+    AIChatbotTutorInputSchema,
+    AIChatbotTutorOutputSchema,
+    type AIChatbotTutorInput,
+    type AIChatbotTutorOutput
+} from '@/ai/schemas/ai-chatbot-tutor-schema';
 
-const AIChatbotTutorInputSchema = z.object({
-  query: z.string().describe('The query or doubt the student has.'),
-});
-export type AIChatbotTutorInput = z.infer<typeof AIChatbotTutorInputSchema>;
-
-const AIChatbotTutorOutputSchema = z.object({
-  response: z.string().describe('The response from the AI Chatbot Tutor.'),
-  mindmap: z.string().optional().describe('The generated mindmap for the topic, if requested.'),
-});
-export type AIChatbotTutorOutput = z.infer<typeof AIChatbotTutorOutputSchema>;
 
 export async function aiChatbotTutor(input: AIChatbotTutorInput): Promise<AIChatbotTutorOutput> {
   return aiChatbotTutorFlow(input);

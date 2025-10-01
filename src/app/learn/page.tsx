@@ -14,9 +14,9 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { analyzeQuizResults, generateLearnMaterial } from '@/lib/actions';
-import type { Flashcard } from '@/ai/flows/generate-learn-material';
+import type { Flashcard } from '@/ai/schemas/generate-learn-material-schema';
 import { toast } from '@/hooks/use-toast';
-import type { AnalyzeQuizResultsInput } from '@/ai/flows/analyze-quiz-results';
+import type { AnalyzeQuizResultsInput } from '@/ai/schemas/analyze-quiz-results-schema';
 
 const formSchema = z.object({
   topic: z.string().min(5, { message: 'Topic must be at least 5 characters.' }),
