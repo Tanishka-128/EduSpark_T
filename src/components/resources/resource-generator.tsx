@@ -14,7 +14,6 @@ import { Loader2, Youtube, ExternalLink, BookMarked } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
-import { Separator } from '../ui/separator';
 
 const formSchema = z.object({
   studyGoal: z.string().min(10, {
@@ -94,39 +93,49 @@ export default function ResourceGenerator() {
       )}
 
       {result && (
-        <div className="grid gap-8 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookMarked /> Study Resources
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc space-y-3 pl-5">
-                {result.resources.map((resource, index) => (
-                  <li key={index}>{resource}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+        <div className='space-y-8'>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Youtube /> YouTube Videos
               </CardTitle>
             </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+              {result.youtubeVideos.map((video) => (
+                <div key={video.videoId} className='space-y-2'>
+                  <div className="aspect-video overflow-hidden rounded-lg border">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={`https://www.youtube.com/embed/${video.videoId}`}
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                  <p className='font-semibold'>{video.title}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookMarked /> Recommended Articles
+              </CardTitle>
+            </CardHeader>
             <CardContent>
               <ul className="space-y-3">
-                {result.youtubeVideos.map((videoUrl, index) => (
+                {result.articles.map((article, index) => (
                   <li key={index}>
                     <Link
-                      href={videoUrl}
+                      href={article.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group flex items-center gap-2 text-primary hover:underline"
                     >
                       <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{videoUrl}</span>
+                      <span className="font-medium">{article.title}</span>
                     </Link>
                   </li>
                 ))}

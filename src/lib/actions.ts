@@ -6,6 +6,17 @@ import { generateStudyResources, GenerateStudyResourcesInput } from '@/ai/flows/
 export async function getStudyResources(input: GenerateStudyResourcesInput) {
   try {
     const output = await generateStudyResources(input);
+    // Basic URL validation
+    if (output.youtubeVideos) {
+      output.youtubeVideos.forEach(video => {
+        if (video.url) {
+          const videoId = new URL(video.url).searchParams.get('v');
+          if (videoId) {
+            video.videoId = videoId;
+          }
+        }
+      });
+    }
     return { success: true, data: output };
   } catch (error) {
     console.error(error);

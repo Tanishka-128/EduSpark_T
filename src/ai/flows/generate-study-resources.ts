@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for recommending study resources, including YouTube videos,
+ * @fileOverview This file defines a Genkit flow for recommending study resources, including YouTube videos and articles,
  * based on a user-specified study goal.
  *
  * - generateStudyResources - A function that takes a study goal as input and returns a list of study resources.
@@ -17,9 +17,20 @@ const GenerateStudyResourcesInputSchema = z.object({
 });
 export type GenerateStudyResourcesInput = z.infer<typeof GenerateStudyResourcesInputSchema>;
 
+const YoutubeVideoSchema = z.object({
+  title: z.string().describe('The title of the YouTube video.'),
+  url: z.string().describe('The URL of the YouTube video.'),
+  videoId: z.string().describe('The ID of the YouTube video.'),
+});
+
+const ArticleSchema = z.object({
+    title: z.string().describe('The title of the article.'),
+    url: z.string().describe('The URL of the article.'),
+});
+
 const GenerateStudyResourcesOutputSchema = z.object({
-  resources: z.array(z.string()).describe('A list of recommended study resources.'),
-  youtubeVideos: z.array(z.string()).describe('A list of recommended YouTube video URLs.'),
+  youtubeVideos: z.array(YoutubeVideoSchema).describe('A list of recommended YouTube videos.'),
+  articles: z.array(ArticleSchema).describe('A list of recommended articles with clickable links.'),
 });
 export type GenerateStudyResourcesOutput = z.infer<typeof GenerateStudyResourcesOutputSchema>;
 
@@ -31,11 +42,11 @@ const prompt = ai.definePrompt({
   name: 'generateStudyResourcesPrompt',
   input: {schema: GenerateStudyResourcesInputSchema},
   output: {schema: GenerateStudyResourcesOutputSchema},
-  prompt: `You are an AI assistant designed to recommend study resources and YouTube videos based on a user's study goal.
+  prompt: `You are an AI assistant designed to recommend study resources including YouTube videos and articles based on a user's study goal.
 
   Study Goal: {{{studyGoal}}}
 
-  Recommend a list of study resources and relevant YouTube video URLs that would be helpful for achieving the study goal.  The resources and URLs should be returned as simple lists.
+  Recommend a list of relevant YouTube videos and articles that would be helpful for achieving the study goal. For each YouTube video, provide the title, URL, and the video ID. For each article, provide the title and a clickable URL.
   `,
 });
 
