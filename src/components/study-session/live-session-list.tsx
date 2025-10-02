@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useCollection, useUser } from '@/firebase';
+import { useCollection, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +11,7 @@ export default function LiveSessionList() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const sessionsQuery = useMemo(() => {
+  const sessionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'studySessions'), where('active', '==', true));
   }, [firestore]);

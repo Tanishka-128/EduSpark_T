@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useCollection } from '@/firebase';
+import { useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import PostCard from './post-card';
@@ -11,7 +10,7 @@ import { type Post } from '@/lib/types';
 export default function PostList() {
   const firestore = useFirestore();
 
-  const postsQuery = useMemo(() => {
+  const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'posts'), orderBy('timestamp', 'desc'));
   }, [firestore]);

@@ -1,9 +1,10 @@
+'use client';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Video } from 'lucide-react';
-import { useMemo } from 'react';
-import { useCollection, useUser } from '@/firebase';
+import { useCollection, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 
@@ -19,8 +20,9 @@ export default function FriendsList() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const friendsQuery = useMemo(() => {
+  const friendsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
+    // This is a sample query, in a real app you'd likely have a `friends` subcollection or an array of friend IDs.
     return query(collection(firestore, 'users'), where('id', 'in', user.providerData.map(p => p.uid)));
   }, [firestore, user]);
 

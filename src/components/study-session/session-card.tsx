@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Users, LogIn, LogOut } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useFirestore, updateDocumentNonBlocking, useCollection } from '@/firebase';
+import { useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, query, collection, where, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { type StudySession, type UserProfile } from '@/lib/types';
 import { useMemo } from 'react';
@@ -19,7 +19,7 @@ interface SessionCardProps {
 const ParticipantAvatars = ({ participantIds }: { participantIds: string[] }) => {
     const firestore = useFirestore();
     
-    const usersQuery = useMemo(() => {
+    const usersQuery = useMemoFirebase(() => {
         if (!firestore || participantIds.length === 0) return null;
         return query(collection(firestore, 'users'), where('id', 'in', participantIds));
     }, [firestore, participantIds]);
