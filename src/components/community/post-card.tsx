@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useDoc, useUser, useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking, useCollection } from '@/firebase';
-import { doc, collection, increment, query, where, serverTimestamp } from 'firebase/firestore';
+import { useDoc, useUser, useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { doc, collection, increment, query, where, orderBy, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
 import { type Post, type UserProfile, type Comment } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -26,7 +26,7 @@ const commentSchema = z.object({
 
 const CommentItem = ({ comment }: { comment: Comment }) => {
     const firestore = useFirestore();
-    const userProfileRef = useMemo(() => firestore ? doc(firestore, `users/${comment.userId}`) : null, [firestore, comment.userId]);
+    const userProfileRef = useMemoFirebase(() => firestore ? doc(firestore, `users/${comment.userId}`) : null, [firestore, comment.userId]);
     const { data: author } = useDoc<UserProfile>(userProfileRef);
 
     return (
@@ -42,7 +42,7 @@ const CommentItem = ({ comment }: { comment: Comment }) => {
                         {comment.timestamp ? formatDistanceToNow(comment.timestamp.toDate(), { addSuffix: true }) : 'just now'}
                     </p>
                 </div>
-                <p className="mt-1">{comment.content}</p>
+                <p className="mt-1 whitespace-pre-wrap">{comment.content}</p>
             </div>
         </div>
     )
@@ -54,21 +54,22 @@ export default function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  const userProfileRef = useMemo(() => firestore ? doc(firestore, `users/${post.userId}`) : null, [firestore, post.userId]);
-  const { data: author } = useDoc<UserProfile>(userProfileRef);
+  const authorProfileRef = useMemoFirebase(() => firestore ? doc(firestore, `users/${post.userId}`) : null, [firestore, post.userId]);
+  const { data: author } = useDoc<UserProfile>(authorProfileRef);
   
-  const postRef = useMemo(() => firestore ? doc(firestore, `posts/${post.id}`) : null, [firestore, post.id]);
+  const postRef = useMemoFirebase(() => firestore ? doc(firestore, `posts/${post.id}`) : null, [firestore, post.id]);
 
-  // Like logic
-  const likesQuery = useMemo(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, `posts/${post.id}/likes`), where('userId', '==', user.uid));
-  }, [firestore, post.id, user]);
-  const { data: userLikes } = useCollection(likesQuery);
+  const likesCollectionRef = useMemoFirebase(() => firestore ? collection(firestore, `posts/${post.id}/likes`) : null, [firestore, post.id]);
+
+  const userLikeQuery = useMemoFirebase(() => {
+    if (!likesCollectionRef || !user) return null;
+    return query(likesCollectionRef, where('userId', '==', user.uid));
+  }, [likesCollectionRef, user]);
+
+  const { data: userLikes } = useCollection(userLikeQuery);
   const hasLiked = userLikes ? userLikes.length > 0 : false;
-
-  // Comments logic
-  const commentsQuery = useMemo(() => {
+  
+  const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, `posts/${post.id}/comments`), orderBy('timestamp', 'asc'));
   }, [firestore, post.id]);
@@ -79,18 +80,18 @@ export default function PostCard({ post }: PostCardProps) {
     defaultValues: { content: '' },
   });
 
-
-  const handleLike = () => {
-    if (!firestore || !user || !postRef) return;
-    const likeRef = doc(collection(firestore, `posts/${post.id}/likes`));
-
-    if (hasLiked && userLikes?.[0]) {
-        const existingLikeRef = doc(firestore, `posts/${post.id}/likes`, userLikes[0].id);
-        updateDocumentNonBlocking(postRef, { likeCount: increment(-1) });
-        // deleteDocumentNonBlocking(existingLikeRef); - Not yet implemented
+  const handleLike = async () => {
+    if (!firestore || !user || !postRef || !likesCollectionRef) return;
+  
+    if (hasLiked) {
+        if (userLikes && userLikes[0]) {
+            const likeDocRef = doc(firestore, `posts/${post.id}/likes`, userLikes[0].id);
+            deleteDocumentNonBlocking(likeDocRef);
+            updateDocumentNonBlocking(postRef, { likeCount: increment(-1) });
+        }
     } else {
+        addDocumentNonBlocking(likesCollectionRef, { userId: user.uid });
         updateDocumentNonBlocking(postRef, { likeCount: increment(1) });
-        addDocumentNonBlocking(collection(firestore, `posts/${post.id}/likes`), { userId: user.uid });
     }
   };
 
@@ -105,8 +106,10 @@ export default function PostCard({ post }: PostCardProps) {
       timestamp: serverTimestamp(),
     };
     
-    await addDocumentNonBlocking(commentsCollection, newComment);
-    updateDocumentNonBlocking(postRef, { commentCount: increment(1) });
+    // We don't await this, but we can still use .then() for sequential logic
+    addDocumentNonBlocking(commentsCollection, newComment).then(() => {
+        updateDocumentNonBlocking(postRef, { commentCount: increment(1) });
+    });
 
     form.reset();
     setIsSubmittingComment(false);
@@ -147,7 +150,7 @@ export default function PostCard({ post }: PostCardProps) {
       {showComments && (
         <CardContent className="border-t pt-4">
             <div className="space-y-4">
-                {user && (
+                {user ? (
                      <Form {...form}>
                         <form onSubmit={form.handleSubmit(onCommentSubmit)} className="flex items-start gap-2">
                              <FormField
@@ -166,7 +169,7 @@ export default function PostCard({ post }: PostCardProps) {
                             </Button>
                         </form>
                     </Form>
-                )}
+                ) : <p className="text-center text-sm text-muted-foreground">Please log in to comment.</p>}
                
                 {comments && comments.length > 0 ? (
                     comments.map(comment => <CommentItem key={comment.id} comment={comment}/>)

@@ -14,11 +14,14 @@ export interface UserProfile {
     username: string;
     email: string;
     photoURL?: string;
+    points?: number;
+    friendIds?: string[];
 }
 
 export interface Comment {
     id: string;
     userId: string;
+    postId: string;
     content: string;
     timestamp: Timestamp;
 }
@@ -30,4 +33,11 @@ export interface StudySession {
     participants: string[];
     startTime: Timestamp;
     active: boolean;
+}
+
+export interface FriendRequest {
+    id: string;
+    fromUserId: string;
+    toUserId: string;
+    status: 'pending' | 'accepted' | 'declined';
 }
