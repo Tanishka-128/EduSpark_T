@@ -30,9 +30,10 @@ const prompt = ai.definePrompt({
 Study Goal: {{{studyGoal}}}
 
 1.  **Find YouTube Videos**: Use the \`searchYoutube\` tool with a concise, relevant query based on the study goal to find 3-4 helpful videos.
-2.  **Find Articles**: Find 2–3 related articles or blog posts on the same topic from reputable educational websites.
+2.  **Find Articles**: Find 2–3 related articles or blog posts on the same topic from reputable, high-traffic educational websites (like Wikipedia, major university sites, well-known educational platforms).
 
-Rules:
+Rules for Articles:
+- **CRITICAL**: You MUST NOT invent, guess, or create URLs. Only provide links to real, existing web pages from your training data. If you are not certain a URL is correct and from a reputable source, do not include it.
 - Ensure the article links are valid and clickable.
 - Do not hallucinate links.
 - Ensure the output strictly follows the requested JSON format.
