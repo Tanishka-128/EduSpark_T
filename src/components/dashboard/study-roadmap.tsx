@@ -11,7 +11,7 @@ const initialTasks = [
   { id: 'task4', label: "Watch video on Schrödinger's Cat", done: false },
 ];
 
-export default function StudyRoadmap() {
+export default function StudyPlan() {
   const [tasks, setTasks] = useState(initialTasks);
 
   const handleCheckedChange = (taskId: string, checked: boolean) => {
@@ -24,7 +24,7 @@ export default function StudyRoadmap() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Today's Study Roadmap</CardTitle>
+        <CardTitle className="font-headline">Today's Study Plan</CardTitle>
         <CardDescription>Your personalized plan for today. Let's get it done!</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

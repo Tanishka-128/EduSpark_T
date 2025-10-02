@@ -1,6 +1,6 @@
 import { AppLayout } from '@/components/layout/app-layout';
 import GamificationStats from '@/components/dashboard/gamification-stats';
-import StudyRoadmap from '@/components/dashboard/study-roadmap';
+import StudyPlan from '@/components/dashboard/study-roadmap';
 import WelcomeHeader from '@/components/dashboard/welcome-header';
 
 export default function DashboardPage() {
@@ -9,7 +9,7 @@ export default function DashboardPage() {
       <div className="space-y-8">
         <WelcomeHeader />
         <GamificationStats />
-        <StudyRoadmap />
+        <StudyPlan />
       </div>
     </AppLayout>
   );

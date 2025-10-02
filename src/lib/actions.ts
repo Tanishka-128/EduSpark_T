@@ -4,10 +4,12 @@ import { aiChatbotTutor } from '@/ai/flows/ai-chatbot-tutor';
 import { generateStudyResources } from '@/ai/flows/generate-study-resources';
 import { generateLearnMaterial as generateLearnMaterialFlow } from '@/ai/flows/generate-learn-material';
 import { analyzeQuizResults as analyzeQuizResultsFlow  } from '@/ai/flows/analyze-quiz-results';
+import { generateStudyRoadmap as generateStudyRoadmapFlow } from '@/ai/flows/generate-study-roadmap';
 import type { GenerateStudyResourcesInput } from '@/ai/schemas/generate-study-resources-schema';
 import type { AIChatbotTutorInput } from '@/ai/schemas/ai-chatbot-tutor-schema';
 import type { GenerateLearnMaterialInput } from '@/ai/schemas/generate-learn-material-schema';
 import type { AnalyzeQuizResultsInput } from '@/ai/schemas/analyze-quiz-results-schema';
+import type { GenerateStudyRoadmapInput } from '@/ai/schemas/generate-study-roadmap-schema';
 
 export async function getStudyResources(input: GenerateStudyResourcesInput) {
   try {
@@ -76,6 +78,17 @@ export async function analyzeQuizResults(input: AnalyzeQuizResultsInput) {
     } catch (error) {
         console.error(error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to analyze quiz results.';
+        return { success: false, error: errorMessage };
+    }
+}
+
+export async function generateStudyRoadmap(input: GenerateStudyRoadmapInput) {
+    try {
+        const output = await generateStudyRoadmapFlow(input);
+        return { success: true, data: output };
+    } catch (error) {
+        console.error(error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to generate study roadmap.';
         return { success: false, error: errorMessage };
     }
 }
