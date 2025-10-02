@@ -5,7 +5,7 @@ import Flashcards from '@/components/learn/flashcards';
 import Quiz, { type UserAnswer, type QuizQuestion } from '@/components/learn/quiz';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BrainCircuit, Layers, Loader2, Sparkles } from 'lucide-react';
+import { BrainCircuit, Layers, Loader2, Sparkles, View } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,7 @@ import { toast } from '@/hooks/use-toast';
 import type { AnalyzeQuizResultsOutput } from '@/ai/schemas/analyze-quiz-results-schema';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import ARVRSimulation from '@/components/learn/ar-vr-simulation';
 
 const formSchema = z.object({
   topic: z.string().min(5, { message: 'Topic must be at least 5 characters.' }),
@@ -39,7 +40,7 @@ export default function LearnPage() {
     defaultValues: { topic: '' },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>>) => {
     setIsLoading(true);
     setTopic(values.topic);
     setFlashcards([]);
@@ -162,12 +163,15 @@ export default function LearnPage() {
 
         {topic && flashcards.length > 0 && quizQuestions.length > 0 && (
           <Tabs defaultValue="flashcards" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
+            <TabsList className="grid w-full grid-cols-3 md:w-[600px]">
               <TabsTrigger value="flashcards">
                 <Layers className="mr-2 h-4 w-4" /> Flashcards
               </TabsTrigger>
               <TabsTrigger value="quiz">
                 <BrainCircuit className="mr-2 h-4 w-4" /> Quiz
+              </TabsTrigger>
+               <TabsTrigger value="ar-vr">
+                <View className="mr-2 h-4 w-4" /> AR/VR
               </TabsTrigger>
             </TabsList>
             <TabsContent value="flashcards">
@@ -197,10 +201,20 @@ export default function LearnPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="ar-vr">
+              <Card>
+                <CardHeader>
+                  <CardTitle>AR/VR Simulation for: {topic}</CardTitle>
+                  <CardDescription>Experience your topic in an immersive 3D environment.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ARVRSimulation />
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         )}
       </div>
     </AppLayout>
   );
 }
-    
