@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
-import { Bot, Loader2, Send, User, GitBranch } from 'lucide-react';
+import { Bot, Loader2, Send, User, GitBranch, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import type { MindMap } from '@/ai/schemas/mind-map-schema';
@@ -26,21 +26,28 @@ const formSchema = z.object({
   query: z.string().min(1),
 });
 
-const MindMapNode = ({ node, level }: { node: MindMap; level: number }) => (
-  <div style={{ marginLeft: level * 20 }} className="relative">
-    {level > 0 && <div className="absolute -left-5 top-2.5 h-px w-4 bg-border" />}
-    <div className="flex items-center gap-2">
-      <GitBranch className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-      <span className="font-medium">{node.title}</span>
-    </div>
-    {node.children && node.children.length > 0 && (
-      <div className="mt-2 space-y-2">
-        {node.children.map(child => (
-          <MindMapNode key={child.id} node={child} level={level + 1} />
+const MindMapVisualizer = ({ mindmap }: { mindmap: MindMap }) => (
+    <div className="mt-4 rounded-md border bg-card p-4">
+      <h4 className="mb-4 font-semibold text-base">Mindmap for: {mindmap.topic}</h4>
+      <div className="space-y-4">
+        {mindmap.mindmap.map((branch, index) => (
+          <div key={index}>
+            <div className="flex items-center gap-2">
+                <GitBranch className="h-5 w-5 flex-shrink-0 text-primary" />
+                <span className="font-semibold text-lg">{branch.branch}</span>
+            </div>
+            <ul className="mt-2 ml-4 space-y-2 border-l pl-4">
+                {branch.subbranches.map((sub, subIndex) => (
+                    <li key={subIndex} className="flex items-start gap-2">
+                        <ChevronsRight className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                        <span>{sub}</span>
+                    </li>
+                ))}
+            </ul>
+          </div>
         ))}
       </div>
-    )}
-  </div>
+    </div>
 );
 
 
@@ -116,12 +123,7 @@ export default function ChatInterface() {
                   )}
                 >
                   <p className="text-sm">{message.content}</p>
-                  {message.mindmap && (
-                    <div className="mt-4 rounded-md border bg-card p-4">
-                      <h4 className="mb-4 font-semibold text-base">Mindmap for: {message.mindmap.title}</h4>
-                      <MindMapNode node={message.mindmap} level={0} />
-                    </div>
-                  )}
+                  {message.mindmap && <MindMapVisualizer mindmap={message.mindmap} />}
                 </div>
                 {message.role === 'user' && (
                   <Avatar className="h-8 w-8 border">

@@ -1,20 +1,16 @@
 import { z } from 'zod';
 
-// Define a recursive schema for a mind map node.
-export const MindMapNodeSchema: z.ZodType<MindMap> = z.object({
-  id: z.string().describe('A unique identifier for the node.'),
-  title: z.string().describe('The title or main idea of this node.'),
-  children: z.array(z.lazy(() => MindMapNodeSchema)).optional().describe('An array of child nodes, representing sub-topics.'),
+const MindMapBranchSchema = z.object({
+    branch: z.string().describe("The name of the main concept or branch."),
+    subbranches: z.array(z.string()).describe("An array of key points, facts, or sub-topics related to the main branch.")
 });
 
-export type MindMap = {
-  id: string;
-  title: string;
-  children?: MindMap[];
-};
+export const MindMapSchema = z.object({
+    topic: z.string().describe("The main topic of the mindmap."),
+    mindmap: z.array(MindMapBranchSchema).describe("An array of main branches, each with its own sub-branches.")
+});
+export type MindMap = z.infer<typeof MindMapSchema>;
 
-// This is the top-level schema for the entire mindmap structure.
-export const MindMapSchema = MindMapNodeSchema;
 
 export const GenerateMindmapInputSchema = z.object({
     topic: z.string().describe('The central topic for the mindmap.'),

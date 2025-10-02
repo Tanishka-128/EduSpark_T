@@ -6,13 +6,12 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
 import { 
     GenerateMindmapInputSchema, 
     MindMapSchema,
-    type GenerateMindmapInput
+    type GenerateMindmapInput,
+    type MindMap
 } from '@/ai/schemas/mind-map-schema';
-import type { MindMap } from '@/ai/schemas/mind-map-schema';
 
 export async function generateMindmap(input: GenerateMindmapInput): Promise<MindMap> {
   return generateMindmapFlow(input);
@@ -22,20 +21,20 @@ const prompt = ai.definePrompt({
   name: 'generateMindmapPrompt',
   input: { schema: GenerateMindmapInputSchema },
   output: { schema: MindMapSchema },
-  prompt: `You are an expert at creating structured, hierarchical mindmaps for educational purposes.
-Generate a mindmap for the topic: "{{topic}}".
+  prompt: `You are an expert AI developer that generates highly accurate, structured mindmaps for any topic provided by a student.
 
-The mindmap must be structured as a nested object with the following properties for each node:
-- "id": A unique string identifier for the node.
-- "title": The name of the concept.
-- "children": An array of nested node objects for sub-topics.
+Generate a detailed mindmap for the topic: "{{topic}}".
 
-The structure should be:
-1. A single root node representing the main topic.
-2. Several main sub-topics as children of the root node.
-3. Each sub-topic should have its own children representing key points or facts.
+The mindmap must be hierarchical with main branches and sub-branches. It should include key concepts, definitions, examples, and connections between topics. Each branch should have 2-5 sub-branches, making it neither too sparse nor too dense. The content must be concise, accurate, and educational.
 
-Ensure the mindmap is clear, accurate, and well-organized to help a student understand the topic's structure and connections.
+The output must be a JSON object with the following structure:
+{
+  "topic": "{{topic}}",
+  "mindmap": [
+    {"branch": "Main Concept 1", "subbranches": ["sub1", "sub2", "sub3"]},
+    {"branch": "Main Concept 2", "subbranches": ["sub1", "sub2"]}
+  ]
+}
 `,
 });
 
