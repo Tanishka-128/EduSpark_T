@@ -2,6 +2,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Video } from 'lucide-react';
+import { useMemo } from 'react';
+import { useCollection, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+
 
 const friendsData = [
   { name: 'Sam Rivera', avatar: 'https://picsum.photos/seed/103/100/100', hint: 'woman smiling', online: true },
@@ -11,6 +16,16 @@ const friendsData = [
 ];
 
 export default function FriendsList() {
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const friendsQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users'), where('id', 'in', user.providerData.map(p => p.uid)));
+  }, [firestore, user]);
+
+  const { data: friends } = useCollection(friendsQuery);
+
   return (
     <Card>
       <CardContent className="pt-6">
