@@ -1,36 +1,41 @@
 /**
- * @fileOverview Firestore Security Rules for EduSpark, an educational application.
+ * @fileoverview Firestore Security Rules for EduSpark application.
  *
  * Core Philosophy:
- * This ruleset prioritizes user data ownership and authenticated access. Users can only read/write their own data under their user ID,
- * and authenticated users can access community content. Data validation is minimized for prototyping speed.
+ * This ruleset enforces a strict user-ownership model for user profiles and quiz results,
+ * and allows public read access with owner-only writes for community posts.
+ * Data consistency is enforced between document IDs and internal user ID fields.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles. User-owned.
- * - /users/{userId}/quizResults/{quizResultId}: Stores quiz results. User-owned.
- * - /quizzes/{quizId}: Stores quiz definitions. Publicly readable.
- * - /questions/{questionId}: Stores individual question details. Publicly readable.
- * - /badges/{badgeId}: Stores badge information. Publicly readable.
- * - /studySessions/{studySessionId}: Stores study session details.
- * - /posts/{postId}: Stores community posts. Publicly readable, owner-writeable.
- * - /posts/{postId}/comments/{commentId}: Stores comments on posts.
+ * - /users/{userId}: Stores user profile information, accessible only to the owner.
+ * - /users/{userId}/quizResults/{quizResultId}: Stores quiz results for each user, accessible only to the owner.
+ * - /quizzes/{quizId}: Stores quiz definitions (publicly readable).
+ * - /questions/{questionId}: Stores question details (publicly readable).
+ * - /badges/{badgeId}: Stores badge information (publicly readable).
+ * - /studySessions/{studySessionId}: Stores study session details, accessible only to the session owner and participants.
+ * - /posts/{postId}: Stores community posts (publicly readable, owner-only writes).
+ * - /posts/{postId}/comments/{commentId}: Stores comments on posts (owner-only writes).
+ * - /friendRequests/{requestId}: Stores friend requests between users (accessed only by the involved users).
  *
  * Key Security Decisions:
- * - Users can only read all users and write their own user document
- * - Public read access for quizzes, questions, and badges.
- * - Study sessions are accessible to participants.
- * - Posts are publicly readable but writable only by the owner.
+ * - Users can only access their own profile data and quiz results.
+ * - Posts are publicly readable, but only the owner can create, update, or delete them.
+ * - Study sessions are accessible to the owner and participants.
+ * - Data validation is limited to enforcing ownership and relational integrity (e.g., userId in quizResult matches the path).
  *
  * Denormalization for Authorization:
- *  - The `StudySession` entity stores an array of `participants`, allowing the rules to directly check if the requesting user is part of the session.
- *  - The `Post` entity requires a `userId` field to associate the post with its author.
+ *  - The rules rely on the `userId` present in the path `/users/{userId}` matching the `id` field within the document.
+ *  - Posts have a `userId` field to determine ownership for write operations.
+ *
+ * Structural Segregation:
+ *  - Quiz results are stored in user-specific subcollections to ensure only the owner can access them.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the requesting user is signed in.
+     * @description Defines a global function to check if a user is signed in.
      * @returns {boolean} True if the user is signed in, false otherwise.
      */
     function isSignedIn() {
@@ -38,130 +43,134 @@ service cloud.firestore {
     }
 
     /**
-     * @description Checks if the requesting user is the owner of the resource.
-     * @param {string} userId The user ID to compare against the request's authentication UID.
-     * @returns {boolean} True if the user is the owner, false otherwise.
+     * @description Defines a global function to check if the request is made by the owner.
+     * @param {string} userId The user ID to compare with the request's authentication UID.
+     * @returns {boolean} True if the user ID matches the request's authentication UID.
      */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the requesting user is the owner of the existing resource.
-     * @param {string} userId The user ID to compare against the resource's owner ID.
-     * @returns {boolean} True if the user is the owner and the resource exists, false otherwise.
+     * @description Defines a global function to check if the request is made by the existing owner.
+     * @param {string} userId The user ID to compare with the resource data and the request's authentication UID.
+     * @returns {boolean} True if the user ID matches the resource data and the request's authentication UID.
      */
     function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Allows authenticated users to read all users for friend search and community feed,
-     *              and allows users to write their own user document.
+     * @description Defines a global function to check if the request is made by participant.
+     * @param {array} participants The array containing user IDs of participants.
+     * @returns {boolean} True if the user is signed in and is a participant.
+     */
+    function isParticipant(participants) {
+        return isSignedIn() && request.auth.uid in participants;
+    }
+
+    /***************** USERS ******************/
+
+    /**
+     * @description Grants access to user profiles, allowing only the owner to read and write.
      * @path /users/{userId}
-     * @allow (list) if isSignedIn() - Allows any authenticated user to list all user documents for community purposes.
-     * @allow (get) if isSignedIn() - Allows any authenticated user to get all user documents for community purposes.
-     * @allow (create) if isOwner(userId) - Allows a user to create their own user document.
-     * @allow (update) if isExistingOwner(userId) - Allows a user to update their own user document.
-     * @allow (delete) if false - Denies deletion of user documents.
-     * @deny (create) if !isOwner(userId) - Denies creating a user document with a different user ID.
-     * @deny (update) if !isExistingOwner(userId) - Denies updating a user document with a different user ID.
-     * @principle Enforces user-owned data with authenticated read access for community features.
+     * @allow (create) User with ID 'user123' can create their profile with matching userId.
+     * @deny (create) User with ID 'user123' cannot create a profile with a different userId.
+     * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
-        allow get, list: if isSignedIn();
-        allow create: if isOwner(userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if false;
-    }
-
-    /**
-     * @description Stores quiz results for each user.
-     * @path /users/{userId}/quizResults/{quizResultId}
-     * @allow (create) if isOwner(userId) - Allows a user to create a quiz result under their ID.
-     * @allow (get) if isOwner(userId) - Allows a user to retrieve their own quiz results.
-     * @allow (list) if isOwner(userId) - Allows a user to list their own quiz results.
-     * @allow (update) if isExistingOwner(userId) - Allows a user to update their own quiz results.
-     * @allow (delete) if isExistingOwner(userId) - Allows a user to delete their own quiz results.
-     * @deny (create) if !isOwner(userId) - Denies creating quiz results under another user's ID.
-     * @deny (update) if !isExistingOwner(userId) - Denies updating quiz results by a non-owner.
-     * @deny (delete) if !isExistingOwner(userId) - Denies deleting quiz results by a non-owner.
-     * @principle Enforces user-owned data for quiz results.
-     */
-    match /users/{userId}/quizResults/{quizResultId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
 
+    /***************** QUIZ RESULTS ******************/
+
     /**
-     * @description Stores quiz definitions, accessible to everyone.
+     * @description Grants access to quiz results, allowing only the owner to read and write.
+     * @path /users/{userId}/quizResults/{quizResultId}
+     * @allow (create) User with ID 'user123' can create their quiz result with matching userId.
+     * @deny (create) User with ID 'user123' cannot create a quiz result with a different userId.
+     * @principle Enforces document ownership for quiz results.
+     */
+    match /users/{userId}/quizResults/{quizResultId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /***************** QUIZZES ******************/
+
+    /**
+     * @description Allows public read access to quizzes.
      * @path /quizzes/{quizId}
-     * @allow (get, list) if true - Allows anyone to view quizzes.
-     * @allow (create, update, delete) if false - Prevents anyone from creating, updating, or deleting quizzes.
-     * @principle Public read, no write access.
+     * @allow (get) Any user can read quiz data.
+     * @deny (create) No user can create, update, or delete quiz data.
+     * @principle Allows public read access to quiz definitions.
      */
     match /quizzes/{quizId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
 
+    /***************** QUESTIONS ******************/
+
     /**
-     * @description Stores individual question details, accessible to everyone.
+     * @description Allows public read access to questions.
      * @path /questions/{questionId}
-     * @allow (get, list) if true - Allows anyone to view questions.
-     * @allow (create, update, delete) if false - Prevents anyone from creating, updating, or deleting questions.
-     * @principle Public read, no write access.
+     * @allow (get) Any user can read question data.
+     * @deny (create) No user can create, update, or delete question data.
+     * @principle Allows public read access to question details.
      */
     match /questions/{questionId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
 
+    /***************** BADGES ******************/
+
     /**
-     * @description Stores badge information, accessible to everyone.
+     * @description Allows public read access to badges.
      * @path /badges/{badgeId}
-     * @allow (get, list) if true - Allows anyone to view badges.
-     * @allow (create, update, delete) if false - Prevents anyone from creating, updating, or deleting badges.
-     * @principle Public read, no write access.
+     * @allow (get) Any user can read badge data.
+     * @deny (create) No user can create, update, or delete badge data.
+     * @principle Allows public read access to badge information.
      */
     match /badges/{badgeId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
 
+    /***************** STUDY SESSIONS ******************/
+
     /**
-     * @description Stores study session details, accessible only to participants.
+     * @description Grants access to study sessions, allowing the owner and participants to read and write.
      * @path /studySessions/{studySessionId}
-     * @allow (get) if isSignedIn() && request.auth.uid in resource.data.participants - Allows participants to get study session details.
-     * @allow (list) if isSignedIn() - Allows any authenticated user to list study sessions.
-     * @allow (create) if isSignedIn() - Allows any authenticated user to create study sessions.
-     * @allow (update) if isSignedIn() && request.auth.uid in resource.data.participants - Allows participants to update study session details.
-     * @allow (delete) if isExistingOwner(resource.data.ownerId) - Allows the owner to delete the study session.
-     * @deny (get) if !(isSignedIn() && request.auth.uid in resource.data.participants) - Denies non-participants from getting study session details.
-     * @deny (update) if !(isSignedIn() && request.auth.uid in resource.data.participants) - Denies non-participants from updating study session details.
-     * @principle Enforces shared access for study sessions based on the participants list.
+     * @allow (get) Owner or participant can read study session data.
+     * @deny (create) User cannot create a study session without being the owner or participant.
+     * @principle Enforces document ownership and shared access for study sessions.
      */
     match /studySessions/{studySessionId} {
-      allow get: if isSignedIn() && request.auth.uid in resource.data.participants;
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow get: if isSignedIn() && (resource.data.ownerId == request.auth.uid || request.auth.uid in resource.data.participants);
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.ownerId) || (isSignedIn() && request.auth.uid in resource.data.participants);
       allow delete: if isExistingOwner(resource.data.ownerId);
     }
 
+    /***************** POSTS ******************/
+
     /**
-     * @description Stores community posts, publicly readable but writable only by the owner.
+     * @description Allows public read access to posts, but restricts write access to the owner only.
      * @path /posts/{postId}
-     * @allow (get, list) if true - Allows anyone to read posts.
-     * @allow (create) if isSignedIn() && request.resource.data.userId == request.auth.uid - Allows creating a post if the user ID matches the authenticated user.
-     * @allow (update) if isExistingOwner(resource.data.userId) - Allows updating a post if the user is the owner.
-     * @allow (delete) if isExistingOwner(resource.data.userId) - Allows deleting a post if the user is the owner.
-     * @deny (create) if !(isSignedIn() && request.resource.data.userId == request.auth.uid) - Denies creating a post if the user ID does not match the authenticated user.
-     * @deny (update) if !isExistingOwner(resource.data.userId) - Denies updating a post if the user is not the owner.
-     * @deny (delete) if !isExistingOwner(resource.data.userId) - Denies deleting a post if the user is not the owner.
-     * @principle Public read, owner-only write access for posts.
+     * @allow (get) Any user can read post data.
+     * @allow (create) Owner can create a post with matching userId.
+     * @deny (update) User cannot update a post they don't own.
+     * @principle Allows public read access to posts while enforcing document ownership for writes.
      */
     match /posts/{postId} {
       allow get, list: if true;
@@ -170,42 +179,52 @@ service cloud.firestore {
       allow delete: if isExistingOwner(resource.data.userId);
     }
 
+    /***************** COMMENTS ******************/
+
     /**
-     * @description Stores comments on posts, accessible to everyone.
+     * @description Grants access to comments on posts, allowing only authenticated users to create comments and the owner to update and delete.
      * @path /posts/{postId}/comments/{commentId}
-     * @allow (get, list) if true - Allows anyone to view comments.
-     * @allow (create) if isSignedIn() - Allows any authenticated user to create a comment.
-     * @allow (update) if isExistingOwner(resource.data.userId) - Allows the comment owner to update their comment.
-     * @allow (delete) if isExistingOwner(resource.data.userId) - Allows the comment owner to delete their comment.
+     * @allow (create) Authenticated user can create a comment.
+     * @deny (update) User cannot update a comment they don't own.
+     * @principle Enforces authentication for comment creation and document ownership for updates and deletes.
      */
     match /posts/{postId}/comments/{commentId} {
-        allow get, list: if true;
-        allow create: if isSignedIn();
-        allow update: if isExistingOwner(resource.data.userId);
-        allow delete: if isExistingOwner(resource.data.userId);
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isExistingOwner(resource.data.userId);
+      allow delete: if isExistingOwner(resource.data.userId);
     }
+
+    /***************** LIKES ******************/
+        /**
+         * @description Allows any authenticated user to create a like, and only the user who created the like can delete it.
+         * @path /posts/{postId}/likes/{likeId}
+         * @allow (create) Any authenticated user can create a like.
+         * @deny (delete) User cannot delete a like they didn't create.
+         * @principle Authenticated users can create likes, and ownership is required for deletion.
+         */
+    match /posts/{postId}/likes/{likeId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if resource.data.userId == request.auth.uid;
+    }
+
+    /***************** FRIEND REQUESTS ******************/
 
     /**
-     * @description Subcollection to track likes on a specific post.
-     * @path /posts/{postId}/likes/{likeId}
+     * @description Controls access to friend requests, ensuring only involved users can read and write.
+     * @path /friendRequests/{requestId}
+     * @allow (get) User can read if they are the sender or receiver.
+     * @deny (create) User cannot create a request where they are not the sender.
+     * @principle Enforces that only involved users can access friend requests.
      */
-    match /posts/{postId}/likes/{likeId} {
-        allow get, list: if true;
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update: if false;
-        allow delete: if isExistingOwner(resource.data.userId);
-    }
-
-     /**
-      * @description Collection to manage friend requests between users.
-      * @path /friendRequests/{requestId}
-      */
     match /friendRequests/{requestId} {
-        allow get: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid);
-        allow list: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid);
+        allow get: if isSignedIn() && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+        allow list: if false;
         allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
-        allow update: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid);
-        allow delete: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
+        allow update: if isSignedIn() && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+        allow delete: if false;
     }
   }
 }
