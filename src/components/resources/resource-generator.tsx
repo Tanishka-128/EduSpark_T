@@ -124,32 +124,6 @@ export default function ResourceGenerator() {
               </CardContent>
             </Card>
           )}
-          {result.articles && result.articles.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookMarked /> Recommended Articles
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {result.articles.map((article, index) => (
-                    <li key={index}>
-                      <Link
-                        href={article.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center gap-2 text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                        <span className="font-medium">{article.title}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
     </div>

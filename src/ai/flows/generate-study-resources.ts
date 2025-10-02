@@ -21,20 +21,6 @@ export async function generateStudyResources(input: GenerateStudyResourcesInput)
   return generateStudyResourcesFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateStudyResourcesPrompt',
-  input: {schema: GenerateStudyResourcesInputSchema},
-  output: {schema: GenerateStudyResourcesOutputSchema},
-  prompt: `You are a smart study assistant. Your task is to act as a helpful AI assistant to find relevant articles for a given study goal.
-
-Study Goal: {{{studyGoal}}}
-
-1.  **Find Articles**: Find 2-3 related articles or blog posts. Do not invent or guess URLs; only return URLs you know to be valid from reputable, high-traffic educational domains.
-
-Ensure your output for articles strictly follows the requested JSON format, but leave the youtubeVideos array empty.
-  `,
-});
-
 const generateStudyResourcesFlow = ai.defineFlow(
   {
     name: 'generateStudyResourcesFlow',
@@ -42,19 +28,14 @@ const generateStudyResourcesFlow = ai.defineFlow(
     outputSchema: GenerateStudyResourcesOutputSchema,
   },
   async input => {
-    // Call the YouTube tool and the article-finding prompt in parallel
-    const [youtubeResult, llmResponse] = await Promise.all([
-        searchYoutube({ query: input.studyGoal }),
-        prompt(input),
-    ]);
+    // Call the YouTube tool
+    const youtubeResult = await searchYoutube({ query: input.studyGoal });
     
-    // Combine the results
-    const articles = llmResponse.output?.articles || [];
+    // Get the videos from the tool's output
     const youtubeVideos = youtubeResult.videos;
 
     return {
         youtubeVideos,
-        articles,
     };
   }
 );
