@@ -17,13 +17,14 @@ export async function getStudyResources(input: GenerateStudyResourcesInput) {
     // Basic URL validation and ID extraction
     if (output.youtubeVideos) {
       output.youtubeVideos.forEach(video => {
-        if (video.url) {
+        if (!video.videoId && video.url) {
           try {
             const url = new URL(video.url);
             let videoId = url.searchParams.get('v');
             if (videoId) {
               video.videoId = videoId;
             } else {
+              // Handle youtu.be, /embed/, /shorts/ formats
               const pathParts = url.pathname.split('/');
               const lastPart = pathParts[pathParts.length - 1];
               if (lastPart) {
@@ -31,15 +32,17 @@ export async function getStudyResources(input: GenerateStudyResourcesInput) {
               }
             }
           } catch (e) {
-            console.error('Invalid video URL:', video.url);
-            // Attempt to extract from malformed URLs
-            const videoIdMatch = video.url.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/)([^&?#]+)/);
+            console.error('Invalid video URL, attempting regex match:', video.url);
+            // Fallback for malformed URLs that URL constructor might fail on
+            const videoIdMatch = video.url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/);
             if (videoIdMatch && videoIdMatch[1]) {
               video.videoId = videoIdMatch[1];
             }
           }
         }
       });
+      // Filter out any videos we still couldn't get an ID for
+      output.youtubeVideos = output.youtubeVideos.filter(video => !!video.videoId);
     }
     return { success: true, data: output };
   } catch (error) {

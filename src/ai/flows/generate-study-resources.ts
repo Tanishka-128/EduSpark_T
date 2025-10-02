@@ -26,13 +26,12 @@ const prompt = ai.definePrompt({
   prompt: `You are a smart study assistant. The student will provide a topic. Based on this topic:
 
 1. Search YouTube and recommend the **top 3–4 videos** with the highest views and likes.
-   - Always return a valid working YouTube URL.
+   - Always return a valid, working YouTube URL for a **publicly available** video.
    - Also return the video title, channel name, and short description.
-   - Make sure the links are clickable and not broken.
+   - You MUST provide a valid \`videoId\` for each video.
 
 2. Find **2–3 related articles/blogs** on the same topic.
-   - Return their title and clickable URL.
-   - Ensure the links work.
+   - Return their title and a valid, clickable URL.
 
 3. Output must be structured as JSON with two keys:
    - \`youtubeVideos\`: an array of \`{ title, channel, url, description, videoId }\`
@@ -40,8 +39,8 @@ const prompt = ai.definePrompt({
 
 Rules:
 - Only include working YouTube URLs and valid article links.
-- Do not hallucinate links.
-- Ensure the output follows JSON strictly.
+- Do not hallucinate links or video IDs.
+- Ensure the output strictly follows the requested JSON format.
 
 Topic: {{{studyGoal}}}
   `,
