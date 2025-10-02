@@ -19,7 +19,16 @@ import { toast } from '@/hooks/use-toast';
 import type { AnalyzeQuizResultsOutput } from '@/ai/schemas/analyze-quiz-results-schema';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import ARVRSimulation from '@/components/learn/ar-vr-simulation';
+import dynamic from 'next/dynamic';
+
+const ARVRSimulation = dynamic(
+  () => import('@/components/learn/ar-vr-simulation'),
+  { 
+    ssr: false,
+    loading: () => <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>
+  }
+);
+
 
 const formSchema = z.object({
   topic: z.string().min(5, { message: 'Topic must be at least 5 characters.' }),
