@@ -30,8 +30,9 @@ const prompt = ai.definePrompt({
    - Also return the video title, channel name, and short description.
    - You MUST provide a valid \`videoId\` for each video.
 
-2. Find **2–3 related articles/blogs** on the same topic.
+2. Find **2–3 related articles or blog posts** on the same topic from reputable, high-traffic educational websites (like universities, established learning platforms, or well-known publications).
    - Return their title and a valid, clickable URL.
+   - **Crucially, do not invent, guess, or create URLs. Only return URLs you have verified exist from your training data.**
 
 3. Output must be structured as JSON with two keys:
    - \`youtubeVideos\`: an array of \`{ title, channel, url, description, videoId }\`
