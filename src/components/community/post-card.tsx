@@ -26,6 +26,7 @@ const commentSchema = z.object({
 
 const CommentItem = ({ comment }: { comment: Comment }) => {
     const firestore = useFirestore();
+    // Use __name__ to query by document ID
     const userProfileRef = useMemoFirebase(() => firestore ? doc(firestore, `users/${comment.userId}`) : null, [firestore, comment.userId]);
     const { data: author } = useDoc<UserProfile>(userProfileRef);
 
@@ -81,7 +82,7 @@ export default function PostCard({ post }: PostCardProps) {
   });
 
   const handleLike = async () => {
-    if (!firestore || !user || !postRef || !likesCollectionRef) return;
+    if (!firestore || !user || !postRef || !likesCollectionref) return;
   
     if (hasLiked) {
         if (userLikes && userLikes[0]) {

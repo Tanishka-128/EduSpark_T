@@ -3,13 +3,13 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Users, LogIn, LogOut } from 'lucide-react';
+import { Users, LogIn, ArrowRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, query, collection, where, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, query, collection, where, arrayUnion } from 'firebase/firestore';
 import { type StudySession, type UserProfile } from '@/lib/types';
-import { useMemo } from 'react';
 import { Skeleton } from '../ui/skeleton';
+import Link from 'next/link';
 
 interface SessionCardProps {
   session: StudySession;
@@ -21,7 +21,7 @@ const ParticipantAvatars = ({ participantIds }: { participantIds: string[] }) =>
     
     const usersQuery = useMemoFirebase(() => {
         if (!firestore || participantIds.length === 0) return null;
-        return query(collection(firestore, 'users'), where('id', 'in', participantIds));
+        return query(collection(firestore, 'users'), where('__name__', 'in', participantIds));
     }, [firestore, participantIds]);
 
     const { data: participants, isLoading } = useCollection<UserProfile>(usersQuery);
@@ -40,6 +40,10 @@ const ParticipantAvatars = ({ participantIds }: { participantIds: string[] }) =>
                     <AvatarFallback>{p.username?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
             ))}
+            {participantIds.length > (participants?.length || 0) &&
+             Array.from({ length: participantIds.length - (participants?.length || 0) }).map((_, i) => (
+                <Skeleton key={i} className="inline-block h-8 w-8 rounded-full" />
+            ))}
         </div>
     )
 }
@@ -47,28 +51,17 @@ const ParticipantAvatars = ({ participantIds }: { participantIds: string[] }) =>
 
 export default function SessionCard({ session, currentUserId }: SessionCardProps) {
   const firestore = useFirestore();
-  const sessionRef = useMemo(() => firestore ? doc(firestore, 'studySessions', session.id) : null, [firestore, session.id]);
+  const sessionRef = useMemoFirebase(() => firestore ? doc(firestore, 'studySessions', session.id) : null, [firestore, session.id]);
 
   const hasJoined = currentUserId ? session.participants.includes(currentUserId) : false;
 
   const handleJoin = () => {
-    if (!sessionRef || !currentUserId) return;
+    if (!sessionRef || !currentUserId || hasJoined) return;
     updateDocumentNonBlocking(sessionRef, {
       participants: arrayUnion(currentUserId)
     });
   };
 
-  const handleLeave = () => {
-    if (!sessionRef || !currentUserId) return;
-    if (session.ownerId === currentUserId) {
-      // Owner leaves, session ends
-      updateDocumentNonBlocking(sessionRef, { active: false });
-    } else {
-      updateDocumentNonBlocking(sessionRef, {
-        participants: arrayRemove(currentUserId)
-      });
-    }
-  };
 
   return (
     <Card className="flex flex-col">
@@ -86,17 +79,12 @@ export default function SessionCard({ session, currentUserId }: SessionCardProps
         <ParticipantAvatars participantIds={session.participants} />
       </CardContent>
       <CardFooter>
-        {currentUserId && (
-          hasJoined ? (
-            <Button variant="outline" className="w-full" onClick={handleLeave}>
-              <LogOut className="mr-2" /> Leave Session
+        <Link href={`/study-sessions/${session.id}`} className="w-full">
+            <Button className="w-full" onClick={handleJoin} disabled={!currentUserId}>
+                {hasJoined ? 'View Session' : 'Join Session'}
+                {hasJoined ? <ArrowRight className="mr-2" /> : <LogIn className="mr-2" />}
             </Button>
-          ) : (
-            <Button className="w-full" onClick={handleJoin}>
-              <LogIn className="mr-2" /> Join Session
-            </Button>
-          )
-        )}
+        </Link>
       </CardFooter>
     </Card>
   );
