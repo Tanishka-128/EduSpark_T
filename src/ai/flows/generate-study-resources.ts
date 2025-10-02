@@ -23,30 +23,17 @@ const prompt = ai.definePrompt({
   name: 'generateStudyResourcesPrompt',
   input: {schema: GenerateStudyResourcesInputSchema},
   output: {schema: GenerateStudyResourcesOutputSchema},
-  prompt: `You are a smart study assistant that fetches YouTube video recommendations. You will act as if you are making a call to the YouTube Data API v3.
+  prompt: `You are a smart study assistant that fetches YouTube video recommendations and relevant articles for a given study goal.
 
-For the given topic, find the top 3-4 videos using the following API parameters:
-- 'part': 'snippet'
-- 'q': '{{{studyGoal}}}'
-- 'type': 'video'
-- 'videoEmbeddable': 'true'
-- 'videoSyndicated': 'true'
-- 'maxResults': 4
-
-From the API response, filter out any results that are private or deleted. For each valid video, provide the following details from the 'snippet' object:
+For the given topic, find 3-4 relevant YouTube videos that would be helpful for a student. For each video, provide:
 - \`title\`: The video title.
-- \`channelTitle\`: The name of the channel.
+- \`channel\`: The name of the channel.
 - \`description\`: A short summary of the video.
 - \`url\`: The full watch URL (e.g., https://www.youtube.com/watch?v={videoId}).
 - \`videoId\`: The ID of the video.
 
-In addition, find **2–3 related articles or blog posts** on the same topic from reputable, high-traffic educational websites (like universities, established learning platforms, or well-known publications).
+In addition, find **2–3 related articles or blog posts** on the same topic from reputable educational websites.
 - Return their title and a valid, clickable URL.
-- **Crucially, do not invent, guess, or create URLs. Only return URLs you have verified exist from your training data.**
-
-Output must be structured as JSON with two keys:
-- \`youtubeVideos\`: an array of \`{ title, channel, url, description, videoId }\`
-- \`articles\`: an array of \`{ title, url }\`
 
 Rules:
 - Only include working YouTube URLs and valid article links.
