@@ -33,6 +33,7 @@ import {
   Rocket,
   Settings,
   Users,
+  Video,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -46,6 +47,7 @@ const navItems = [
   { href: '/chatbot', label: 'AI Tutor', icon: BotMessageSquare },
   { href: '/community', label: 'Community', icon: Users },
   { href: '/leaderboard', label: 'Leaderboard', icon: Award },
+  { href: '/study-sessions', label: 'Study Sessions', icon: Video },
 ];
 
 function AppSidebar() {

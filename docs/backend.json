@@ -29,13 +29,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "studySessionIds": {
-          "type": "array",
-          "description": "References to StudySession. (Relationship: User 1:N StudySession)",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
@@ -235,9 +228,17 @@
           "type": "string",
           "description": "Unique identifier for the study session."
         },
-        "userIds": {
+        "topic": {
+          "type": "string",
+          "description": "The topic of the study session."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The ID of the user who created the session."
+        },
+        "participants": {
           "type": "array",
-          "description": "References to Users participating in the study session. (Relationship: User N:N StudySession)",
+          "description": "References to Users participating in the study session.",
           "items": {
             "type": "string"
           }
@@ -247,22 +248,58 @@
           "description": "The date and time when the study session started.",
           "format": "date-time"
         },
-        "endTime": {
-          "type": "string",
-          "description": "The date and time when the study session ended.",
-          "format": "date-time"
-        },
-        "topic": {
-          "type": "string",
-          "description": "The topic of the study session."
+        "active": {
+          "type": "boolean",
+          "description": "Indicates if the session is currently active."
         }
       },
       "required": [
         "id",
+        "topic",
+        "ownerId",
+        "participants",
         "startTime",
-        "endTime",
-        "topic"
+        "active"
       ]
+    },
+    "Post": {
+      "title": "Post",
+      "type": "object",
+      "description": "Represents a post in the community feed.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "likeCount": { "type": "number" },
+        "commentCount": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "content", "timestamp"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a comment on a post.",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "postId", "userId", "content", "timestamp"]
+    },
+    "FriendRequest": {
+        "title": "FriendRequest",
+        "type": "object",
+        "description": "Represents a friend request between two users.",
+        "properties": {
+            "id": { "type": "string" },
+            "fromUserId": { "type": "string" },
+            "toUserId": { "type": "string" },
+            "status": { "type": "string", "enum": ["pending", "accepted", "declined"] }
+        },
+        "required": ["id", "fromUserId", "toUserId", "status"]
     }
   },
   "auth": {
@@ -372,9 +409,40 @@
             }
           ]
         }
+      },
+      {
+        "path": "/posts/{postId}",
+        "definition": {
+            "entityName": "Post",
+            "schema": { "$ref": "#/backend/entities/Post" },
+            "description": "Main collection for all posts in the community feed."
+        }
+      },
+      {
+        "path": "/posts/{postId}/comments/{commentId}",
+        "definition": {
+            "entityName": "Comment",
+            "schema": { "$ref": "#/backend/entities/Comment" },
+            "description": "Subcollection for comments on a specific post."
+        }
+      },
+      {
+        "path": "/posts/{postId}/likes/{likeId}",
+        "definition": {
+            "entityName": "Like",
+            "schema": { "type": "object", "properties": { "userId": {"type": "string"} } },
+            "description": "Subcollection to track likes on a specific post."
+        }
+      },
+      {
+          "path": "/friendRequests/{requestId}",
+          "definition": {
+              "entityName": "FriendRequest",
+              "schema": { "$ref": "#/backend/entities/FriendRequest" },
+              "description": "Collection to manage friend requests between users."
+          }
       }
     ],
     "reasoning": "The Firestore structure is designed to support the quiz system enhancements, focusing on storing quiz results with personalized feedback, suggestions, and points. A path-based ownership model is used for `quizResults` under each user, ensuring data privacy and security. This structure ensures authorization independence by avoiding `get()` calls in security rules. Each `quizResult` is stored within the `users/{userId}/quizResults/{quizResultId}` path, making it simple to secure quiz results based on user ID. Segregation is achieved by storing all quiz results within the user-specific subcollection, enforcing a homogeneous security posture for all documents within that collection. The QAPs are supported by the user-based subcollection, which prevents listing other user's quiz results."
   }
 }
-    

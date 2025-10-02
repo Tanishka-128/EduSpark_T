@@ -22,3 +22,12 @@ export interface Comment {
     content: string;
     timestamp: Timestamp;
 }
+
+export interface StudySession {
+    id: string;
+    topic: string;
+    ownerId: string;
+    participants: string[];
+    startTime: Timestamp;
+    active: boolean;
+}
