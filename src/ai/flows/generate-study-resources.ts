@@ -14,6 +14,7 @@ import {
     type GenerateStudyResourcesInput,
     type GenerateStudyResourcesOutput,
 } from '@/ai/schemas/generate-study-resources-schema';
+import { searchYoutube } from '../tools/youtube';
 
 
 export async function generateStudyResources(input: GenerateStudyResourcesInput): Promise<GenerateStudyResourcesOutput> {
@@ -24,14 +25,13 @@ const prompt = ai.definePrompt({
   name: 'generateStudyResourcesPrompt',
   input: {schema: GenerateStudyResourcesInputSchema},
   output: {schema: GenerateStudyResourcesOutputSchema},
-  prompt: `You are a smart study assistant. Your task is to find relevant articles and YouTube videos for a given study goal.
+  prompt: `You are a smart study assistant. Your task is to act as a helpful AI assistant to find relevant articles for a given study goal.
 
 Study Goal: {{{studyGoal}}}
 
-1.  **Find YouTube Videos**: Find 3-4 helpful videos.
-2.  **Find Articles**: Find 2-3 related articles or blog posts. Do not invent or guess URLs; only return URLs you know to be valid from reputable, high-traffic educational domains.
+1.  **Find Articles**: Find 2-3 related articles or blog posts. Do not invent or guess URLs; only return URLs you know to be valid from reputable, high-traffic educational domains.
 
-Ensure the output strictly follows the requested JSON format.
+Ensure your output for articles strictly follows the requested JSON format, but leave the youtubeVideos array empty.
   `,
 });
 
@@ -42,7 +42,19 @@ const generateStudyResourcesFlow = ai.defineFlow(
     outputSchema: GenerateStudyResourcesOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    // Call the YouTube tool and the article-finding prompt in parallel
+    const [youtubeResult, llmResponse] = await Promise.all([
+        searchYoutube({ query: input.studyGoal }),
+        prompt(input),
+    ]);
+    
+    // Combine the results
+    const articles = llmResponse.output?.articles || [];
+    const youtubeVideos = youtubeResult.videos;
+
+    return {
+        youtubeVideos,
+        articles,
+    };
   }
 );
