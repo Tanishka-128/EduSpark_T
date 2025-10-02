@@ -82,7 +82,7 @@ export default function PostCard({ post }: PostCardProps) {
   });
 
   const handleLike = async () => {
-    if (!firestore || !user || !postRef || !likesCollectionref) return;
+    if (!firestore || !user || !postRef || !likesCollectionRef) return;
   
     if (hasLiked) {
         if (userLikes && userLikes[0]) {
