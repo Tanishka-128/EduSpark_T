@@ -5,16 +5,18 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, Loader2, PartyPopper, Sparkles, XCircle } from 'lucide-react';
+import { CheckCircle, Lightbulb, Loader2, PartyPopper, Sparkles, Target, XCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import type { AnalyzeQuizResultsOutput } from '@/ai/schemas/analyze-quiz-results-schema';
 
 export interface QuizQuestion {
+  id: string;
   question: string;
   options: string[];
   answer: string;
 }
 
-interface UserAnswer {
+export interface UserAnswer {
   question: string;
   selectedAnswer: string;
   correctAnswer: string;
@@ -24,7 +26,7 @@ interface UserAnswer {
 interface QuizProps {
   quizData: QuizQuestion[];
   onQuizComplete: (userAnswers: UserAnswer[]) => void;
-  feedback: string | null;
+  feedback: AnalyzeQuizResultsOutput | null;
   isLoadingFeedback: boolean;
 }
 
@@ -39,23 +41,21 @@ export default function Quiz({ quizData, onQuizComplete, feedback, isLoadingFeed
 
   useEffect(() => {
     // When a new quiz is loaded, reset the state
-    setCurrentQuestionIndex(0);
-    setSelectedOption(null);
-    setShowResult(false);
-    setUserAnswers([]);
+    handleRestart();
   }, [quizData]);
 
   const handleNext = () => {
     if (!selectedOption) return;
 
     const isCorrect = selectedOption === currentQuestion.answer;
-    setUserAnswers(prev => [...prev, {
+    const answerData = {
       question: currentQuestion.question,
       selectedAnswer: selectedOption,
       correctAnswer: currentQuestion.answer,
       isCorrect,
-    }]);
+    };
     
+    setUserAnswers(prev => [...prev, answerData]);
     setShowResult(true);
 
     setTimeout(() => {
@@ -64,12 +64,7 @@ export default function Quiz({ quizData, onQuizComplete, feedback, isLoadingFeed
       const nextIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(nextIndex);
       if (nextIndex >= quizData.length) {
-        onQuizComplete([...userAnswers, {
-            question: currentQuestion.question,
-            selectedAnswer: selectedOption,
-            correctAnswer: currentQuestion.answer,
-            isCorrect,
-        }]);
+        onQuizComplete([...userAnswers, answerData]);
       }
     }, 1500);
   };
@@ -104,36 +99,59 @@ export default function Quiz({ quizData, onQuizComplete, feedback, isLoadingFeed
             </p>
           </div>
 
-          {feedback && (
-            <div className="mt-4 w-full rounded-md border-l-4 border-primary bg-primary/10 p-4 text-left">
-              <h4 className="mb-2 flex items-center gap-2 font-bold text-primary">
-                <Sparkles className="h-5 w-5" /> Personalized Feedback
-              </h4>
-              <p className="text-sm text-primary/90">{feedback}</p>
-            </div>
-          )}
           {isLoadingFeedback && (
              <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Analyzing your results...</span>
+                <span>AI is analyzing your results...</span>
              </div>
+          )}
+
+          {feedback && (
+            <div className="w-full space-y-4 text-left">
+              <div className="rounded-md border-l-4 border-primary bg-primary/10 p-4">
+                <h4 className="mb-2 flex items-center gap-2 font-bold text-primary">
+                  <Sparkles className="h-5 w-5" /> Overall Feedback
+                </h4>
+                <p className="text-sm text-primary/90">{feedback.overallFeedback}</p>
+              </div>
+
+             {feedback.improvementSuggestions && feedback.improvementSuggestions.length > 0 && (
+                <div className="rounded-md border-l-4 border-accent bg-accent/10 p-4">
+                    <h4 className="mb-2 flex items-center gap-2 font-bold text-accent-foreground/80">
+                        <Target className="h-5 w-5" /> Improvement Suggestions
+                    </h4>
+                    <ul className="list-disc pl-5 text-sm text-accent-foreground/70 space-y-1">
+                        {feedback.improvementSuggestions.map((suggestion, i) => <li key={i}>{suggestion}</li>)}
+                    </ul>
+                </div>
+             )}
+            </div>
           )}
 
           {incorrectAnswers.length > 0 && (
             <div className='w-full text-left space-y-4 pt-4'>
                 <h4 className='font-semibold text-lg'>Review Your Mistakes:</h4>
-                {incorrectAnswers.map((answer, index) => (
-                    <div key={index} className="space-y-2">
-                        <p className='font-medium'>{answer.question}</p>
-                        <div className='flex items-center gap-2 text-sm text-destructive'>
-                            <XCircle className='h-4 w-4 flex-shrink-0' /> Your answer: {answer.selectedAnswer}
+                {incorrectAnswers.map((answer, index) => {
+                    const detailedFeedback = feedback?.detailedFeedback.find(f => f.question === answer.question);
+                    return (
+                        <div key={index} className="space-y-3">
+                            <p className='font-medium'>{answer.question}</p>
+                            <div className='flex items-center gap-2 text-sm text-destructive'>
+                                <XCircle className='h-4 w-4 flex-shrink-0' /> Your answer: {answer.selectedAnswer}
+                            </div>
+                            <div className='flex items-center gap-2 text-sm' style={{ color: 'hsl(var(--chart-2))'}}>
+                                <CheckCircle className='h-4 w-4 flex-shrink-0' /> Correct answer: {answer.correctAnswer}
+                            </div>
+                            {detailedFeedback && (
+                                <div className="flex items-start gap-3 rounded-md bg-muted/50 p-3 text-sm">
+                                    <Lightbulb className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                                    <p className="text-muted-foreground">{detailedFeedback.explanation}</p>
+                                </div>
+                            )}
+                            {index < incorrectAnswers.length - 1 && <Separator className="my-4" />}
                         </div>
-                        <div className='flex items-center gap-2 text-sm' style={{ color: 'hsl(var(--chart-2))'}}>
-                            <CheckCircle className='h-4 w-4 flex-shrink-0' /> Correct answer: {answer.correctAnswer}
-                        </div>
-                        {index < incorrectAnswers.length - 1 && <Separator className="mt-4" />}
-                    </div>
-                ))}
+                    )
+                })}
             </div>
           )}
           
@@ -152,14 +170,14 @@ export default function Quiz({ quizData, onQuizComplete, feedback, isLoadingFeed
         <div className="space-y-3">
           {currentQuestion.options.map((option) => (
              <Label key={option}
-              htmlFor={option}
+              htmlFor={`${currentQuestion.id}-${option}`}
               className={cn("flex items-center space-x-3 rounded-md border p-4 transition-all has-[:checked]:border-primary",
                 showResult ? "cursor-not-allowed" : "cursor-pointer hover:bg-accent/20",
                 showResult && option === currentQuestion.answer && "border-primary bg-primary/10 text-primary",
                 showResult && selectedOption === option && option !== currentQuestion.answer && "border-destructive bg-destructive/10 text-destructive"
               )}
             >
-              <RadioGroupItem value={option} id={option} />
+              <RadioGroupItem value={option} id={`${currentQuestion.id}-${option}`} />
               <span className="font-medium flex-1">{option}</span>
               {showResult && option === currentQuestion.answer && <CheckCircle className="ml-auto" />}
               {showResult && selectedOption === option && option !== currentQuestion.answer && <XCircle className="ml-auto" />}
@@ -173,3 +191,4 @@ export default function Quiz({ quizData, onQuizComplete, feedback, isLoadingFeed
     </div>
   );
 }
+    

@@ -2,7 +2,7 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import Flashcards from '@/components/learn/flashcards';
-import Quiz, { type QuizQuestion } from '@/components/learn/quiz';
+import Quiz, { type UserAnswer, type QuizQuestion } from '@/components/learn/quiz';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BrainCircuit, Layers, Loader2, Sparkles } from 'lucide-react';
@@ -16,7 +16,9 @@ import { Button } from '@/components/ui/button';
 import { analyzeQuizResults, generateLearnMaterial } from '@/lib/actions';
 import type { Flashcard } from '@/ai/schemas/generate-learn-material-schema';
 import { toast } from '@/hooks/use-toast';
-import type { AnalyzeQuizResultsInput } from '@/ai/schemas/analyze-quiz-results-schema';
+import type { AnalyzeQuizResultsOutput } from '@/ai/schemas/analyze-quiz-results-schema';
+import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 const formSchema = z.object({
   topic: z.string().min(5, { message: 'Topic must be at least 5 characters.' }),
@@ -27,7 +29,10 @@ export default function LearnPage() {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<AnalyzeQuizResultsOutput | null>(null);
+
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,7 +50,7 @@ export default function LearnPage() {
 
     if (response.success && response.data) {
       setFlashcards(response.data.flashcards);
-      setQuizQuestions(response.data.quiz);
+      setQuizQuestions(response.data.quiz.map(q => ({...q, id: crypto.randomUUID()})));
     } else {
       toast({
         variant: 'destructive',
@@ -57,21 +62,48 @@ export default function LearnPage() {
     setIsLoading(false);
   };
   
-  const onQuizComplete = async (userAnswers: AnalyzeQuizResultsInput['userAnswers']) => {
+  const onQuizComplete = async (userAnswers: UserAnswer[]) => {
     if (!topic || quizQuestions.length === 0) return;
     setIsLoading(true);
     setFeedback(null);
 
-    const questionsForAnalysis = quizQuestions.map(q => ({ question: q.question, answer: q.answer }));
+    const incorrectAnswers = userAnswers.filter(a => !a.isCorrect);
 
     const response = await analyzeQuizResults({
       topic,
-      questions: questionsForAnalysis,
-      userAnswers,
+      userAnswers: incorrectAnswers,
     });
 
     if (response.success && response.data) {
-      setFeedback(response.data.feedback);
+      setFeedback(response.data);
+      
+      // Save results to Firestore
+      if (user && firestore) {
+        const score = userAnswers.filter(a => a.isCorrect).length;
+        const percentage = Math.round((score / quizQuestions.length) * 100);
+        const pointsEarned = Math.round(percentage / 10);
+
+        const quizResult = {
+          userId: user.uid,
+          quizId: crypto.randomUUID(),
+          topic,
+          score,
+          percentage,
+          answers: userAnswers,
+          feedback: response.data,
+          pointsEarned,
+          submittedAt: new Date().toISOString(),
+        };
+        
+        const resultsColRef = collection(firestore, `users/${user.uid}/quizResults`);
+        addDocumentNonBlocking(resultsColRef, quizResult);
+        
+        toast({
+            title: "Quiz results saved!",
+            description: `You earned ${pointsEarned} points.`,
+        });
+      }
+
     } else {
       toast({
         variant: "destructive",
@@ -120,7 +152,7 @@ export default function LearnPage() {
           </CardContent>
         </Card>
 
-        {isLoading && (
+        {isLoading && !topic && (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="mt-4 font-medium">AI is crafting your learning materials...</p>
@@ -128,7 +160,7 @@ export default function LearnPage() {
           </div>
         )}
 
-        {!isLoading && topic && (
+        {topic && flashcards.length > 0 && quizQuestions.length > 0 && (
           <Tabs defaultValue="flashcards" className="w-full">
             <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
               <TabsTrigger value="flashcards">
@@ -171,3 +203,4 @@ export default function LearnPage() {
     </AppLayout>
   );
 }
+    

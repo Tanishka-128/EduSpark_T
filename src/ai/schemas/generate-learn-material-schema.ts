@@ -23,3 +23,4 @@ export const GenerateLearnMaterialOutputSchema = z.object({
   quiz: z.array(QuizQuestionSchema).describe('An array of 10 quiz questions.'),
 });
 export type GenerateLearnMaterialOutput = z.infer<typeof GenerateLearnMaterialOutputSchema>;
+    
