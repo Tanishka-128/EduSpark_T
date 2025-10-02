@@ -15,7 +15,8 @@ const YoutubeVideoSchema = z.object({
 
 const ArticleSchema = z.object({
     title: z.string().describe('The title of the article.'),
-    url: z.string().describe('The URL of the article.'),
+    url: z.string().url().describe('The URL of the article.'),
+    description: z.string().describe("A short summary or snippet of the article.").optional(),
 });
 
 export const GenerateStudyResourcesOutputSchema = z.object({
