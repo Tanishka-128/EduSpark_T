@@ -1,0 +1,141 @@
+/**
+ * @fileoverview Firestore Security Rules for EduSpark Application
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for quiz results,
+ * ensuring that only the authenticated user can access their own quiz data.
+ * Other data like Quizzes, Questions, Badges and StudySessions can be read by all users.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, accessible only by the user themselves.
+ * - /users/{userId}/quizResults/{quizResultId}: Stores quiz results, accessible only by the user.
+ * - /quizzes/{quizId}: Stores quiz definitions, publicly readable.
+ * - /questions/{questionId}: Stores question details, publicly readable.
+ * - /badges/{badgeId}: Stores badge information, publicly readable.
+ * - /studySessions/{studySessionId}: Stores study session details, publicly readable.
+ *
+ * Key Security Decisions:
+ * - Users can only read and write their own profile data.
+ * - Quiz results are stored as a subcollection of users and are only accessible by the owning user.
+ * - Listing of quiz results is allowed only for the owning user.
+ * - Quiz, Question, Badge and StudySession data are publicly readable but not writable.
+ *
+ * Denormalization for Authorization:
+ * - Quiz results are stored under /users/{userId}/quizResults/{quizResultId} to easily enforce user-based access control without needing to query other collections.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the request is made by an authenticated user.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Verifies user authentication.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user ID matches the provided user ID.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the existing document.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces document ownership and existence for updates and deletes.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Defines security rules for user profiles.
+     * @path /users/{userId}
+     * @allow (get, create, update, delete) if request.auth.uid == userId
+     * @deny (get, create, update, delete) if request.auth.uid != userId
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Defines security rules for quiz results under a specific user.
+     * @path /users/{userId}/quizResults/{quizResultId}
+     * @allow (create, get, list, update, delete) if request.auth.uid == userId
+     * @deny (create, get, list, update, delete) if request.auth.uid != userId
+     * @principle Restricts access to a user's own quiz results.
+     */
+    match /users/{userId}/quizResults/{quizResultId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Defines security rules for quizzes.  Quizzes are publicly readable.
+     * @path /quizzes/{quizId}
+     * @allow get, list: if true
+     * @deny create, update, delete: if false
+     * @principle Allows public read access, restricts write access.
+     */
+    match /quizzes/{quizId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Defines security rules for questions. Questions are publicly readable.
+     * @path /questions/{questionId}
+     * @allow get, list: if true
+     * @deny create, update, delete: if false
+     * @principle Allows public read access, restricts write access.
+     */
+    match /questions/{questionId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Defines security rules for badges. Badges are publicly readable.
+     * @path /badges/{badgeId}
+     * @allow get, list: if true
+     * @deny create, update, delete: if false
+     * @principle Allows public read access to badge information, restricts write access.
+     */
+    match /badges/{badgeId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Defines security rules for study sessions. StudySessions are publicly readable.
+     * @path /studySessions/{studySessionId}
+     * @allow get, list: if true
+     * @deny create, update, delete: if false
+     * @principle Allows public read access, restricts write access.
+     */
+    match /studySessions/{studySessionId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+  }
+}
