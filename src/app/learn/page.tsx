@@ -40,7 +40,7 @@ export default function LearnPage() {
     defaultValues: { topic: '' },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     setTopic(values.topic);
     setFlashcards([]);
