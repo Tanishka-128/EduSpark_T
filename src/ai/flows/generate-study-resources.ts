@@ -23,20 +23,30 @@ const prompt = ai.definePrompt({
   name: 'generateStudyResourcesPrompt',
   input: {schema: GenerateStudyResourcesInputSchema},
   output: {schema: GenerateStudyResourcesOutputSchema},
-  prompt: `You are a smart study assistant. The student will provide a topic. Based on this topic:
+  prompt: `You are a smart study assistant that fetches YouTube video recommendations. You will act as if you are making a call to the YouTube Data API v3.
 
-1. Search YouTube and recommend the **top 3–4 videos** with the highest views and likes.
-   - Always return a valid, working YouTube URL for a **publicly available** video.
-   - Also return the video title, channel name, and short description.
-   - You MUST provide a valid \`videoId\` for each video.
+For the given topic, find the top 3-4 videos using the following API parameters:
+- 'part': 'snippet'
+- 'q': '{{{studyGoal}}}'
+- 'type': 'video'
+- 'videoEmbeddable': 'true'
+- 'videoSyndicated': 'true'
+- 'maxResults': 4
 
-2. Find **2–3 related articles or blog posts** on the same topic from reputable, high-traffic educational websites (like universities, established learning platforms, or well-known publications).
-   - Return their title and a valid, clickable URL.
-   - **Crucially, do not invent, guess, or create URLs. Only return URLs you have verified exist from your training data.**
+From the API response, filter out any results that are private or deleted. For each valid video, provide the following details from the 'snippet' object:
+- \`title\`: The video title.
+- \`channelTitle\`: The name of the channel.
+- \`description\`: A short summary of the video.
+- \`url\`: The full watch URL (e.g., https://www.youtube.com/watch?v={videoId}).
+- \`videoId\`: The ID of the video.
 
-3. Output must be structured as JSON with two keys:
-   - \`youtubeVideos\`: an array of \`{ title, channel, url, description, videoId }\`
-   - \`articles\`: an array of \`{ title, url }\`
+In addition, find **2–3 related articles or blog posts** on the same topic from reputable, high-traffic educational websites (like universities, established learning platforms, or well-known publications).
+- Return their title and a valid, clickable URL.
+- **Crucially, do not invent, guess, or create URLs. Only return URLs you have verified exist from your training data.**
+
+Output must be structured as JSON with two keys:
+- \`youtubeVideos\`: an array of \`{ title, channel, url, description, videoId }\`
+- \`articles\`: an array of \`{ title, url }\`
 
 Rules:
 - Only include working YouTube URLs and valid article links.
