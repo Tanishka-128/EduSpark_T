@@ -11,19 +11,38 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
-import { Bot, Loader2, Send, User } from 'lucide-react';
+import { Bot, Loader2, Send, User, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import type { MindMap } from '@/ai/schemas/mind-map-schema';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  mindmap?: string;
+  mindmap?: MindMap;
 }
 
 const formSchema = z.object({
   query: z.string().min(1),
 });
+
+const MindMapNode = ({ node, level }: { node: MindMap; level: number }) => (
+  <div style={{ marginLeft: level * 20 }} className="relative">
+    {level > 0 && <div className="absolute -left-5 top-2.5 h-px w-4 bg-border" />}
+    <div className="flex items-center gap-2">
+      <GitBranch className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+      <span className="font-medium">{node.title}</span>
+    </div>
+    {node.children && node.children.length > 0 && (
+      <div className="mt-2 space-y-2">
+        {node.children.map(child => (
+          <MindMapNode key={child.id} node={child} level={level + 1} />
+        ))}
+      </div>
+    )}
+  </div>
+);
+
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -99,10 +118,8 @@ export default function ChatInterface() {
                   <p className="text-sm">{message.content}</p>
                   {message.mindmap && (
                     <div className="mt-4 rounded-md border bg-card p-4">
-                      <h4 className="mb-2 font-semibold">Mindmap:</h4>
-                      <pre className="text-xs overflow-x-auto">
-                        <code>{message.mindmap}</code>
-                      </pre>
+                      <h4 className="mb-4 font-semibold text-base">Mindmap for: {message.mindmap.title}</h4>
+                      <MindMapNode node={message.mindmap} level={0} />
                     </div>
                   )}
                 </div>
@@ -139,7 +156,7 @@ export default function ChatInterface() {
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <FormControl>
-                    <Input placeholder="e.g., Explain black holes in simple terms..." {...field} disabled={isLoading} />
+                    <Input placeholder="e.g., Explain black holes, or 'create a mindmap on photosynthesis'" {...field} disabled={isLoading} />
                   </FormControl>
                 </FormItem>
               )}

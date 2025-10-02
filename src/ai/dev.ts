@@ -6,3 +6,4 @@ import '@/ai/flows/generate-study-resources';
 import '@/ai/flows/ai-chatbot-tutor';
 import '@/ai/flows/generate-learn-material';
 import '@/ai/flows/analyze-quiz-results';
+import '@/ai/flows/generate-mindmap';
