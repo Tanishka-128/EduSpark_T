@@ -14,6 +14,7 @@ import {
     type GenerateStudyResourcesInput,
     type GenerateStudyResourcesOutput,
 } from '@/ai/schemas/generate-study-resources-schema';
+import { searchYoutube } from '../tools/youtube';
 
 export async function generateStudyResources(input: GenerateStudyResourcesInput): Promise<GenerateStudyResourcesOutput> {
   return generateStudyResourcesFlow(input);
@@ -23,24 +24,18 @@ const prompt = ai.definePrompt({
   name: 'generateStudyResourcesPrompt',
   input: {schema: GenerateStudyResourcesInputSchema},
   output: {schema: GenerateStudyResourcesOutputSchema},
-  prompt: `You are a smart study assistant that fetches YouTube video recommendations and relevant articles for a given study goal.
+  tools: [searchYoutube],
+  prompt: `You are a smart study assistant. Your task is to find relevant articles for a given study goal and use the provided tool to search for YouTube videos.
 
-For the given topic, find 3-4 relevant YouTube videos that would be helpful for a student. For each video, provide:
-- \`title\`: The video title.
-- \`channel\`: The name of the channel.
-- \`description\`: A short summary of the video.
-- \`url\`: The full watch URL (e.g., https://www.youtube.com/watch?v={videoId}).
-- \`videoId\`: The ID of the video.
+Study Goal: {{{studyGoal}}}
 
-In addition, find **2–3 related articles or blog posts** on the same topic from reputable educational websites.
-- Return their title and a valid, clickable URL.
+1.  **Find YouTube Videos**: Use the \`searchYoutube\` tool with a concise, relevant query based on the study goal to find 3-4 helpful videos.
+2.  **Find Articles**: Find 2–3 related articles or blog posts on the same topic from reputable educational websites.
 
 Rules:
-- Only include working YouTube URLs and valid article links.
-- Do not hallucinate links or video IDs.
+- Ensure the article links are valid and clickable.
+- Do not hallucinate links.
 - Ensure the output strictly follows the requested JSON format.
-
-Topic: {{{studyGoal}}}
   `,
 });
 
